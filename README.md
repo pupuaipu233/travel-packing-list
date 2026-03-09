@@ -40,7 +40,52 @@
 - 后端：Node.js, Express
 - 数据库：Supabase (PostgreSQL)
 
+## 部署方式
+
+### 方式一：EdgeOne静态部署（推荐）
+适用于公网访问，无需后端服务
+
+1. **使用静态版本**：
+   - 打开 `frontend/index-static.html` 文件
+   - 该版本使用localStorage存储历史记录，无需后端服务
+
+2. **部署到EdgeOne**：
+   - 登录EdgeOne控制台
+   - 选择创建项目 - 从GitHub导入
+   - 选择GitHub仓库：`https://github.com/pupuaipu233/travel-packing-list`
+   - 设置构建目录为 `frontend`
+   - 设置入口文件为 `index-static.html`
+   - 点击部署
+
+3. **访问网站**：
+   - 部署成功后，EdgeOne会分配一个公网URL
+   - 其他用户可以通过该URL访问您的网站
+
+### 方式二：本地完整版部署
+适用于本地开发测试，包含后端服务
+
+1. **初始化Supabase数据库**：
+   - 登录Supabase控制台（https://app.supabase.com）
+   - 打开项目 `ritmvwytkgbpkasqulgz`
+   - 进入SQL编辑器
+   - 执行 `database/supabase_init.sql` 文件中的SQL语句
+   - 确保 `packing_lists` 表已创建并初始化测试数据
+
+2. **安装后端依赖**：
+   - 打开命令提示符（cmd）
+   - 进入 `backend` 目录
+   - 执行：`npm install`
+
+3. **启动后端服务**：
+   - 在 `backend` 目录中执行：`node server.js`
+   - 服务将运行在 http://localhost:3000
+
+4. **打开前端界面**：
+   - 直接在浏览器中打开 `frontend/index.html` 文件
+   - 开始使用打包清单生成功能
+
 ## 注意事项
-- 确保Supabase项目已正确配置
-- Supabase连接配置在 `backend/db.js` 文件中，已使用提供的URL和key
+- EdgeOne部署使用静态版本，数据存储在用户浏览器的localStorage中
+- 本地完整版使用Supabase数据库，支持跨设备数据同步
+- Supabase连接配置在 `backend/db.js` 文件中
 - 后端服务默认端口为3000，如需修改请在 `backend/server.js` 中调整
