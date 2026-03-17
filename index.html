@@ -885,85 +885,17 @@
             }
         }
         
-        // API 配置
-        const API_CONFIG = {
-            seniversePublicKey: 'PL1aBeQc_8_f6qxxj',
-            seniversePrivateKey: 'SaEVjjmjs5RvzMkuC',
-            glmApiKey: '175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu',
-            glmModel: 'GLM-4-FlashX-250414'
-        };
-        
-        // 生成 HMAC-SHA1 签名
-        async function generateSignature(str, key) {
-            const encoder = new TextEncoder();
-            const keyData = encoder.encode(key);
-            const msgData = encoder.encode(str);
-            
-            const cryptoKey = await crypto.subtle.importKey(
-                'raw',
-                keyData,
-                { name: 'HMAC', hash: 'SHA-1' },
-                false,
-                ['sign']
-            );
-            
-            const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
-            return btoa(String.fromCharCode(...new Uint8Array(signature)));
-        }
-        
-        // 获取真实天气信息（直接调用心知天气 API）
+        // 获取真实天气信息（通过 EdgeOne Function）
         async function fetchWeather(destination) {
             try {
-                const ts = Math.floor(Date.now() / 1000);
-                const ttl = 300;
-                const uid = 'user_' + ts;
-                const sigStr = `ts=${ts}&ttl=${ttl}&uid=${uid}${API_CONFIG.seniversePrivateKey}`;
-                const sig = await generateSignature(sigStr, API_CONFIG.seniversePrivateKey);
-                
-                const weatherUrl = `https://api.seniverse.com/v3/weather/daily.json?key=${API_CONFIG.seniversePublicKey}&location=${encodeURIComponent(destination)}&language=zh-Hans&unit=c&start=0&days=3&ts=${ts}&ttl=${ttl}&uid=${uid}&sig=${sig}`;
-                
-                const response = await fetch(weatherUrl);
+                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
+                if (!response.ok) throw new Error('获取天气失败');
                 const data = await response.json();
-                
-                if (data.results && data.results[0]) {
-                    const weatherData = data.results[0];
-                    const daily = weatherData.daily[0];
-                    
-                    return {
-                        destination: weatherData.location.name,
-                        weather: daily.text_day,
-                        tempRange: `${daily.low}~${daily.high}°C`,
-                        humidity: daily.humidity + '%',
-                        suggestions: getWeatherSuggestion(daily.text_day),
-                        forecast3d: weatherData.daily.map(day => ({
-                            date: day.date,
-                            weather: day.text_day,
-                            tempMin: day.low,
-                            tempMax: day.high
-                        }))
-                    };
-                }
-                return null;
+                return data.success ? data.data : null;
             } catch (error) {
                 console.error('获取天气失败:', error);
                 return null;
             }
-        }
-        
-        // 根据天气给出建议
-        function getWeatherSuggestion(weather) {
-            const suggestions = {
-                '晴': '天气晴朗，注意防晒',
-                '多云': '天气舒适，适合出行',
-                '阴': '天气阴沉，建议带件外套',
-                '雨': '有雨，记得带伞',
-                '小雨': '有小雨，记得带伞',
-                '中雨': '有中雨，记得带伞',
-                '大雨': '有大雨，尽量减少外出',
-                '雪': '有雪，注意保暖',
-                '雷阵雨': '有雷阵雨，注意安全'
-            };
-            return suggestions[weather] || '天气多变，注意携带合适衣物';
         }
         
         // 目的地输入时自动获取天气
@@ -1057,68 +989,31 @@
                     displayWeather(weatherData);
                 }
                 
-                // 直接调用 GLM AI API
-                const prompt = buildAIPrompt({
-                    travel_days: parseInt(travelDays),
-                    destination,
-                    weather: currentWeather ? currentWeather.weather : null,
-                    trip_purpose: tripPurpose,
-                    traveler_type: travelerType,
-                    preferences
-                });
-                
-                const aiResponse = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                // 调用 EdgeOne Function 生成清单
+                const response = await fetch('/api/generate-smart', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${API_CONFIG.glmApiKey}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: API_CONFIG.glmModel,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: '你是一个专业的旅行打包清单助手。请根据用户提供的信息，生成一份详细的旅行打包清单。返回 JSON 格式：{"must_have": ["物品1", "物品2"], "optional": ["物品1", "物品2"], "tips": "提醒建议"}'
-                            },
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 2000
+                        travel_days: parseInt(travelDays),
+                        destination,
+                        weather: currentWeather ? currentWeather.weather : null,
+                        trip_purpose: tripPurpose,
+                        traveler_type: travelerType,
+                        preferences
                     })
                 });
                 
-                if (!aiResponse.ok) {
-                    throw new Error('AI API 调用失败');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'AI 生成失败');
                 }
                 
-                const aiData = await aiResponse.json();
-                const aiContent = aiData.choices[0].message.content;
+                const data = await response.json();
                 
-                // 解析 AI 返回的 JSON
-                let listContent;
-                try {
-                    listContent = JSON.parse(aiContent);
-                } catch (e) {
-                    const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        listContent = JSON.parse(jsonMatch[0]);
-                    } else {
-                        throw new Error('AI 返回格式错误');
-                    }
-                }
-                
-                // 确保格式正确
-                if (!listContent.must_have || !Array.isArray(listContent.must_have)) {
-                    listContent.must_have = [];
-                }
-                if (!listContent.optional || !Array.isArray(listContent.optional)) {
-                    listContent.optional = [];
-                }
-                if (!listContent.tips) {
-                    listContent.tips = '请根据实际情况调整清单';
+                if (!data.success) {
+                    throw new Error(data.error || '生成失败');
                 }
                 
                 // 保存到历史记录
@@ -1129,12 +1024,12 @@
                     trip_purpose: tripPurpose || null,
                     traveler_type: travelerType || null,
                     preferences: preferences,
-                    list_content: listContent,
-                    ai_tips: listContent.tips,
+                    list_content: data.data.list_content,
+                    ai_tips: data.data.ai_tips,
                     ai_generated: true
                 });
                 
-                displayList(listContent, listContent.tips, true);
+                displayList(data.data.list_content, data.data.ai_tips, true);
                 loadHistory();
             } catch (error) {
                 console.error('AI生成错误:', error);
@@ -1178,36 +1073,6 @@
                 btn.disabled = false;
             }
         });
-        
-        // 构建 AI 提示词
-        function buildAIPrompt(params) {
-            const { travel_days, destination, weather, trip_purpose, traveler_type, preferences } = params;
-            
-            let prompt = `请为以下行程生成打包清单：\n\n`;
-            prompt += `- 旅行天数：${travel_days}天\n`;
-            prompt += `- 目的地：${destination}\n`;
-            
-            if (weather) {
-                prompt += `- 天气情况：${weather}\n`;
-            }
-            if (trip_purpose) {
-                prompt += `- 出行目的：${trip_purpose}\n`;
-            }
-            if (traveler_type) {
-                prompt += `- 旅行者类型：${traveler_type}\n`;
-            }
-            if (preferences && preferences.length > 0) {
-                prompt += `- 个人偏好：${preferences.join(', ')}\n`;
-            }
-            
-            prompt += `\n请生成一份详细的打包清单，包含：\n`;
-            prompt += `1. must_have: 必带物品（最多15件，包含证件、电子设备、衣物等必需品）\n`;
-            prompt += `2. optional: 可选物品（最多10件，根据行程特点推荐）\n`;
-            prompt += `3. tips: 特别提醒（针对此行程的打包建议）\n`;
-            prompt += `\n请以 JSON 格式返回。`;
-            
-            return prompt;
-        }
         
         // 加载历史记录
         function loadHistory() {
