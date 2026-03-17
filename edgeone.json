@@ -1,17 +1,5 @@
 {
   "name": "travel-packing-list",
   "version": "1.0.0",
-  "type": "pages",
-  "build": {
-    "output": ".",
-    "functions": "functions"
-  },
-  "env": {
-    "SUPABASE_URL": "https://ritmvwytkgbpkasqulgz.supabase.co",
-    "SUPABASE_KEY": "你的_supabase_key",
-    "GLM_API_KEY": "你的_glm_key",
-    "GLM_MODEL": "GLM-4-FlashX-250414",
-    "SENIVERSE_PUBLIC_KEY": "你的_心知公钥",
-    "SENIVERSE_PRIVATE_KEY": "你的_心知私钥"
-  }
+  "type": "pages"
 }

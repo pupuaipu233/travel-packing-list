@@ -366,6 +366,19 @@
             margin-bottom: 15px;
         }
 
+        .weather-info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .weather-info-box.show {
+            display: block;
+        }
+
         @media (max-width: 600px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -444,15 +457,13 @@
             </div>
             
             <!-- 天气信息显示区域 -->
-            <div class="form-group full-width" id="weather-info" style="display: none;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                        <span style="font-size: 24px;">🌤️</span>
-                        <strong style="font-size: 18px;">目的地天气预报</strong>
-                    </div>
-                    <div id="weather-details" style="font-size: 14px; opacity: 0.9;">
-                        正在获取天气信息...
-                    </div>
+            <div class="form-group full-width weather-info-box" id="weather-info">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span style="font-size: 24px;">🌤️</span>
+                    <strong style="font-size: 18px;">目的地天气</strong>
+                </div>
+                <div id="weather-details" style="font-size: 14px; opacity: 0.9;">
+                    正在获取天气信息...
                 </div>
             </div>
             
@@ -506,6 +517,283 @@
     </div>
     
     <script>
+        // ===== 纯前端智能生成逻辑 =====
+        
+        // 目的地物品数据库
+        const destinationDatabase = {
+            '三亚': {
+                mustHave: ['防晒霜(SPF50+)', '泳衣/泳裤', '墨镜', '沙滩拖鞋', '遮阳帽', '晒后修复'],
+                optional: ['浮潜装备', '防水手机袋', '沙滩巾', '驱蚊液'],
+                tips: '三亚阳光强烈，紫外线指数高，务必做好防晒措施。'
+            },
+            '北京': {
+                mustHave: ['舒适步行鞋', '保湿护肤品', '口罩', '充电宝'],
+                optional: ['自拍杆', '折叠伞', '润唇膏'],
+                tips: '北京景点多为步行游览，建议穿舒适的鞋子。'
+            },
+            '上海': {
+                mustHave: ['雨伞', '舒适步行鞋', '便携购物袋'],
+                optional: ['地铁卡/交通卡', '相机', '时尚配饰'],
+                tips: '上海天气多变，建议随身携带雨伞。'
+            },
+            '东京': {
+                mustHave: ['便携雨伞', '零钱包(硬币多)', '舒适步行鞋'],
+                optional: ['翻译APP', '充电宝', '购物清单'],
+                tips: '东京购物天堂，记得带大容量行李箱。'
+            },
+            '巴黎': {
+                mustHave: ['时尚外套', '舒适步行鞋', '防盗包'],
+                optional: ['相机', '围巾', '便携雨伞'],
+                tips: '巴黎早晚温差大，注意保暖。'
+            },
+            '纽约': {
+                mustHave: ['舒适步行鞋', '便携雨伞', '充电宝'],
+                optional: ['地铁卡', '小费现金', '购物袋'],
+                tips: '纽约步行量大，建议穿舒适的鞋子。'
+            },
+            '泰国': {
+                mustHave: ['防晒霜', '驱蚊液', '轻薄衣物', '凉鞋'],
+                optional: ['泳衣', '防水袋', '肠胃药'],
+                tips: '泰国蚊虫较多，注意防蚊和饮食卫生。'
+            },
+            '日本': {
+                mustHave: ['便携雨伞', '零钱包', '舒适步行鞋'],
+                optional: ['翻译器', '充电宝', '购物袋'],
+                tips: '日本便利店随处可见，很多东西可以当地购买。'
+            },
+            '新加坡': {
+                mustHave: ['轻薄衣物', '防晒霜', '雨伞', '墨镜'],
+                optional: ['泳衣', '防蚊液', '便携风扇'],
+                tips: '新加坡室内空调很冷，建议带一件薄外套。'
+            },
+            '香港': {
+                mustHave: ['舒适步行鞋', '充电宝', '轻薄外套'],
+                optional: ['八达通卡', '购物袋', '转换插头'],
+                tips: '香港步行量大，商场空调很冷。'
+            }
+        };
+        
+        // 天气相关物品
+        const weatherItems = {
+            '晴天': {
+                mustHave: ['防晒霜', '墨镜', '遮阳帽'],
+                optional: ['便携风扇', '防晒衣']
+            },
+            '雨天': {
+                mustHave: ['雨伞', '雨衣', '防水鞋套'],
+                optional: ['防水袋', '备用袜子']
+            },
+            '阴天': {
+                mustHave: ['轻薄外套'],
+                optional: ['雨伞(备用)']
+            },
+            '雪天': {
+                mustHave: ['保暖外套', '围巾', '手套', '帽子', '防滑鞋'],
+                optional: ['暖宝宝', '保温杯']
+            },
+            '寒冷': {
+                mustHave: ['厚外套', '保暖内衣', '围巾'],
+                optional: ['暖宝宝', '保温杯']
+            },
+            '炎热': {
+                mustHave: ['防晒霜', '墨镜', '便携风扇'],
+                optional: ['清凉喷雾', '藿香正气水']
+            }
+        };
+        
+        // 出行目的相关物品
+        const purposeItems = {
+            '度假': {
+                mustHave: ['休闲服装', '相机'],
+                optional: ['泳装', '沙滩用品', '娱乐设备']
+            },
+            '商务': {
+                mustHave: ['正装', '名片', '笔记本电脑', '充电器'],
+                optional: ['便携熨斗', '文件袋']
+            },
+            '探亲': {
+                mustHave: ['礼物', '舒适服装'],
+                optional: ['特产', '儿童玩具']
+            },
+            '户外': {
+                mustHave: ['登山鞋', '背包', '水壶', '急救包'],
+                optional: ['登山杖', '指南针', '手电筒']
+            },
+            '文化': {
+                mustHave: ['舒适步行鞋', '相机', '笔记本'],
+                optional: ['导游书', '翻译器']
+            },
+            '购物': {
+                mustHave: ['大容量行李箱', '购物清单'],
+                optional: ['折叠购物袋', '便携秤']
+            }
+        };
+        
+        // 旅行者类型相关物品
+        const travelerItems = {
+            '单人': {
+                mustHave: ['自拍杆', '充电宝'],
+                optional: ['便携三脚架', '耳机']
+            },
+            '情侣': {
+                mustHave: ['相机', '自拍杆'],
+                optional: ['浪漫小物', '双人用品']
+            },
+            '亲子': {
+                mustHave: ['儿童药品', '零食', '玩具', '湿巾'],
+                optional: ['儿童推车', '儿童餐具']
+            },
+            '朋友': {
+                mustHave: ['桌游/卡牌', '蓝牙音箱'],
+                optional: ['团队用品', '共享充电器']
+            },
+            '老年': {
+                mustHave: ['常用药品', '舒适鞋子', '保温杯'],
+                optional: ['拐杖', '老花镜', '急救卡']
+            }
+        };
+        
+        // 偏好相关物品
+        const preferenceItems = {
+            '摄影': ['相机', '备用电池', '存储卡', '三脚架', '镜头清洁布'],
+            '美食': ['健胃消食片', '便携餐具', '湿巾', '零食'],
+            '购物': ['大容量行李箱', '折叠购物袋', '便携秤'],
+            '运动': ['运动装备', '运动鞋', '运动水壶', '毛巾'],
+            '文化': ['导游书', '笔记本', '笔', '翻译器'],
+            '自然': ['驱蚊液', '户外装备', '指南针', '手电筒'],
+            '夜生活': ['正式服装', '化妆品', '充电宝'],
+            '放松': ['眼罩', '耳塞', '颈枕', '书籍/Kindle']
+        };
+        
+        // 基础必带物品
+        const baseMustHave = ['身份证/护照', '手机', '充电器', '充电宝', '钱包/现金'];
+        
+        // 智能清单生成函数
+        function generateSmartList(params) {
+            const { travel_days, destination, weather, trip_purpose, traveler_type, preferences } = params;
+            
+            let mustHave = [...baseMustHave, `换洗衣物(${travel_days}套)`];
+            let optional = ['洗漱用品', '毛巾'];
+            let tips = [];
+            
+            // 根据目的地添加物品
+            if (destination) {
+                const destKey = Object.keys(destinationDatabase).find(key => 
+                    destination.includes(key) || key.includes(destination)
+                );
+                if (destKey) {
+                    const destData = destinationDatabase[destKey];
+                    mustHave.push(...destData.mustHave);
+                    optional.push(...destData.optional);
+                    tips.push(destData.tips);
+                }
+            }
+            
+            // 根据天气添加物品
+            if (weather && weatherItems[weather]) {
+                mustHave.push(...weatherItems[weather].mustHave);
+                optional.push(...weatherItems[weather].optional);
+            }
+            
+            // 根据出行目的添加物品
+            if (trip_purpose && purposeItems[trip_purpose]) {
+                mustHave.push(...purposeItems[trip_purpose].mustHave);
+                optional.push(...purposeItems[trip_purpose].optional);
+            }
+            
+            // 根据旅行者类型添加物品
+            if (traveler_type && travelerItems[traveler_type]) {
+                mustHave.push(...travelerItems[traveler_type].mustHave);
+                optional.push(...travelerItems[traveler_type].optional);
+            }
+            
+            // 根据偏好添加物品
+            if (preferences && Array.isArray(preferences)) {
+                preferences.forEach(pref => {
+                    if (preferenceItems[pref]) {
+                        optional.push(...preferenceItems[pref]);
+                    }
+                });
+            }
+            
+            // 去重并限制数量
+            mustHave = [...new Set(mustHave)].slice(0, 15);
+            optional = [...new Set(optional)].slice(0, 12);
+            
+            // 生成提示
+            let finalTips = tips.length > 0 ? tips.join(' ') : '请根据实际情况调整清单。';
+            if (travel_days > 7) {
+                finalTips += ' 行程较长，建议携带便携洗衣液。';
+            }
+            
+            return {
+                must_have: mustHave,
+                optional: optional,
+                tips: finalTips
+            };
+        }
+        
+        // 基础清单生成
+        function generateBasicList(travelDays, weather) {
+            const mustHave = [...baseMustHave, `换洗衣物(${travelDays}套)`];
+            const optional = ['洗漱用品', '毛巾'];
+            
+            if (weather === '雨天') {
+                mustHave.push('雨伞', '雨衣');
+            } else if (weather === '低温' || weather === '寒冷') {
+                mustHave.push('厚外套', '围巾');
+            } else if (weather === '晴天' || weather === '炎热') {
+                optional.push('帽子', '墨镜', '防晒霜');
+            }
+            
+            return { must_have: mustHave, optional: optional };
+        }
+        
+        // 模拟天气数据
+        function getSimulatedWeather(destination) {
+            const weathers = ['晴天', '阴天', '雨天'];
+            const randomWeather = weathers[Math.floor(Math.random() * weathers.length)];
+            const temps = ['15-22°C', '20-28°C', '25-32°C', '10-18°C'];
+            const randomTemp = temps[Math.floor(Math.random() * temps.length)];
+            
+            return {
+                destination: destination,
+                weather: randomWeather,
+                tempRange: randomTemp,
+                humidity: '65%',
+                suggestions: randomWeather === '雨天' ? '记得带伞' : randomWeather === '晴天' ? '注意防晒' : '天气舒适'
+            };
+        }
+        
+        // ===== localStorage 操作 =====
+        
+        const STORAGE_KEY = 'packing_list_history';
+        
+        function saveToHistory(data) {
+            let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const newItem = {
+                id: Date.now(),
+                ...data,
+                created_at: new Date().toISOString()
+            };
+            history.unshift(newItem);
+            // 只保留最近50条
+            history = history.slice(0, 50);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+            return newItem;
+        }
+        
+        function getHistory() {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        }
+        
+        function getHistoryItem(id) {
+            const history = getHistory();
+            return history.find(item => item.id === id);
+        }
+        
+        // ===== UI 交互 =====
+        
         // 偏好标签选择
         document.querySelectorAll('.preference-tag').forEach(tag => {
             tag.addEventListener('click', function() {
@@ -538,7 +826,7 @@
             if (listContent.must_have && listContent.must_have.length > 0) {
                 html += `
                     <div class="item-category">
-                        <h3>🎯 必带物品</h3>
+                        <h3>🎯 必带物品 (${listContent.must_have.length}件)</h3>
                         <ul class="item-list">
                             ${listContent.must_have.map(item => `<li>${item}</li>`).join('')}
                         </ul>
@@ -549,7 +837,7 @@
             if (listContent.optional && listContent.optional.length > 0) {
                 html += `
                     <div class="item-category">
-                        <h3>✨ 可选物品</h3>
+                        <h3>✨ 可选物品 (${listContent.optional.length}件)</h3>
                         <ul class="item-list">
                             ${listContent.optional.map(item => `<li>${item}</li>`).join('')}
                         </ul>
@@ -579,63 +867,44 @@
             result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // 获取天气信息
-        async function fetchWeather(destination) {
-            try {
-                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
-                if (!response.ok) throw new Error('获取天气失败');
-                const data = await response.json();
-                return data.data;
-            } catch (error) {
-                console.error('获取天气失败:', error);
-                return null;
-            }
-        }
-        
         // 显示天气信息
         function displayWeather(weatherData) {
             const weatherInfo = document.getElementById('weather-info');
             const weatherDetails = document.getElementById('weather-details');
             
             if (weatherData) {
-                const forecast3d = weatherData.forecast3d || [];
-                let forecastHtml = '';
-                if (forecast3d.length > 0) {
-                    forecastHtml = '<div style="margin-top: 10px; display: flex; gap: 15px; flex-wrap: wrap;">' +
-                        forecast3d.map(day => `<span>${day.date}: ${day.weather} ${day.tempMin}~${day.tempMax}</span>`).join('') +
-                        '</div>';
-                }
-                
                 weatherDetails.innerHTML = `
                     <strong>${weatherData.weather}</strong> | 
                     温度: ${weatherData.tempRange} | 
-                    湿度: ${weatherData.humidity || 'N/A'}<br>
+                    湿度: ${weatherData.humidity}<br>
                     ${weatherData.suggestions || ''}
-                    ${forecastHtml}
                 `;
-                weatherInfo.style.display = 'block';
+                weatherInfo.classList.add('show');
             } else {
-                weatherInfo.style.display = 'none';
+                weatherInfo.classList.remove('show');
             }
         }
         
         // 目的地输入时自动获取天气
         let weatherTimeout;
+        let currentWeather = null;
         document.getElementById('destination').addEventListener('input', function() {
             clearTimeout(weatherTimeout);
             const destination = this.value.trim();
             
             if (destination.length >= 2) {
                 weatherTimeout = setTimeout(async () => {
-                    const weatherData = await fetchWeather(destination);
-                    displayWeather(weatherData);
+                    // 使用模拟天气数据
+                    currentWeather = getSimulatedWeather(destination);
+                    displayWeather(currentWeather);
                 }, 500);
             } else {
-                document.getElementById('weather-info').style.display = 'none';
+                document.getElementById('weather-info').classList.remove('show');
+                currentWeather = null;
             }
         });
         
-        // 快速生成（原有功能）
+        // 快速生成
         document.getElementById('generate-btn').addEventListener('click', async function() {
             const travelDays = document.getElementById('travel-days').value;
             const destination = document.getElementById('destination').value;
@@ -650,38 +919,25 @@
                 </div>
             `;
             
-            try {
-                // 获取天气
-                let weather = '晴天';
-                if (destination) {
-                    const weatherData = await fetchWeather(destination);
-                    if (weatherData) {
-                        weather = weatherData.weather;
-                        displayWeather(weatherData);
-                    }
-                }
-                
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        travel_days: travelDays, 
-                        weather: weather
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('生成失败');
-                }
-                
-                const data = await response.json();
-                displayList(data.list_content, null, false);
-                loadHistory();
-            } catch (error) {
-                resultContent.innerHTML = `<div class="error">生成失败：${error.message}</div>`;
-            }
+            // 模拟延迟
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 获取天气
+            let weather = currentWeather ? currentWeather.weather : '晴天';
+            
+            const listContent = generateBasicList(travelDays, weather);
+            
+            // 保存到历史记录
+            saveToHistory({
+                travel_days: parseInt(travelDays),
+                destination: destination || null,
+                weather: weather,
+                list_content: listContent,
+                ai_generated: false
+            });
+            
+            displayList(listContent, null, false);
+            loadHistory();
         });
         
         // AI智能生成
@@ -708,77 +964,49 @@
                 <div class="loading">
                     <div class="loading-spinner"></div>
                     <p>AI正在为您生成个性化清单...</p>
-                    <p style="font-size: 14px; color: #999;">正在获取目的地天气和推荐物品...</p>
+                    <p style="font-size: 14px; color: #999;">正在分析目的地特征和天气...</p>
                 </div>
             `;
             
+            // 模拟AI处理延迟
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
             try {
-                // 先获取天气信息
-                const weatherData = await fetchWeather(destination);
-                if (weatherData) {
-                    displayWeather(weatherData);
-                }
+                // 获取天气信息
+                const weatherData = currentWeather || getSimulatedWeather(destination);
+                displayWeather(weatherData);
                 
-                console.log('发送请求到服务器...', {
+                // 生成智能清单
+                const listContent = generateSmartList({
                     travel_days: parseInt(travelDays),
                     destination,
+                    weather: weatherData.weather,
                     trip_purpose: tripPurpose,
-                    traveler_type: travelerType
+                    traveler_type: travelerType,
+                    preferences
                 });
                 
-                const response = await fetch('/api/generate-smart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        travel_days: parseInt(travelDays),
-                        destination,
-                        trip_purpose: tripPurpose,
-                        traveler_type: travelerType,
-                        preferences
-                    })
+                // 保存到历史记录
+                saveToHistory({
+                    travel_days: parseInt(travelDays),
+                    destination: destination,
+                    weather: weatherData.weather,
+                    trip_purpose: tripPurpose || null,
+                    traveler_type: travelerType || null,
+                    preferences: preferences,
+                    list_content: listContent,
+                    ai_tips: listContent.tips,
+                    ai_generated: true
                 });
                 
-                console.log('收到响应:', response.status);
-                
-                if (!response.ok) {
-                    let errorMessage = '生成失败';
-                    try {
-                        const errorText = await response.text();
-                        console.log('服务器错误响应:', errorText);
-                        try {
-                            const errorData = JSON.parse(errorText);
-                            errorMessage = errorData.error || `服务器错误 (${response.status}): ${errorText}`;
-                        } catch(e) {
-                            errorMessage = `服务器错误 (${response.status}): ${errorText}`;
-                        }
-                    } catch (e) {
-                        errorMessage = `服务器错误 (${response.status})`;
-                    }
-                    throw new Error(errorMessage);
-                }
-                
-                const data = await response.json();
-                
-                // 检查返回的数据结构
-                if (!data.success || !data.data) {
-                    throw new Error('返回数据格式错误');
-                }
-                
-                displayList(
-                    data.data.list_content,
-                    data.data.ai_tips,
-                    true
-                );
+                displayList(listContent, listContent.tips, true);
                 loadHistory();
             } catch (error) {
                 console.error('AI生成错误:', error);
                 resultContent.innerHTML = `
                     <div class="error">
-                        <strong>AI生成失败</strong><br>
-                        错误信息：${error.message}<br>
-                        <small style="color: #999;">请检查：1.服务器是否运行 2.网络连接 3.刷新页面重试</small>
+                        <strong>生成失败</strong><br>
+                        错误信息：${error.message}
                     </div>
                 `;
             } finally {
@@ -787,17 +1015,11 @@
         });
         
         // 加载历史记录
-        async function loadHistory() {
+        function loadHistory() {
             const historyList = document.getElementById('history-list');
             
             try {
-                const response = await fetch('/api/history');
-                
-                if (!response.ok) {
-                    throw new Error('加载历史记录失败');
-                }
-                
-                const data = await response.json();
+                const data = getHistory();
                 
                 if (data.length === 0) {
                     historyList.innerHTML = `
@@ -830,7 +1052,7 @@
         }
         
         // 加载历史记录详情
-        async function loadHistoryItem(id) {
+        window.loadHistoryItem = function(id) {
             const resultContent = document.getElementById('result-content');
             
             document.getElementById('result').classList.add('show');
@@ -841,23 +1063,19 @@
                 </div>
             `;
             
-            try {
-                const response = await fetch(`http://localhost:8888/api/history/${id}`);
-                
-                if (!response.ok) {
-                    throw new Error('加载详情失败');
+            setTimeout(() => {
+                const item = getHistoryItem(id);
+                if (item) {
+                    displayList(
+                        item.list_content,
+                        item.ai_tips,
+                        item.ai_generated
+                    );
+                } else {
+                    resultContent.innerHTML = `<div class="error">未找到该记录</div>`;
                 }
-                
-                const data = await response.json();
-                displayList(
-                    data.list_content,
-                    data.ai_tips,
-                    data.ai_generated
-                );
-            } catch (error) {
-                resultContent.innerHTML = `<div class="error">加载详情失败：${error.message}</div>`;
-            }
-        }
+            }, 300);
+        };
         
         // 页面加载时加载历史记录
         window.onload = loadHistory;
