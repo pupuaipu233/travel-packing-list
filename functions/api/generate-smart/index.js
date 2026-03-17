@@ -68,7 +68,7 @@ export async function onRequestPost(context) {
             body: JSON.stringify({
                 travel_days: parseInt(travel_days),
                 destination: destination || null,
-                weather: weather || null,
+                weather: weather || '未指定',
                 trip_purpose: trip_purpose || null,
                 traveler_type: traveler_type || null,
                 preferences: preferences || [],

@@ -19,7 +19,7 @@ export async function onRequestPost(context) {
             },
             body: JSON.stringify({
                 travel_days: parseInt(travel_days),
-                weather: weather || null,
+                weather: weather || '未指定',
                 destination: destination || null,
                 list_content: list_content || generateBasicList(travel_days, weather),
                 ai_generated: false
