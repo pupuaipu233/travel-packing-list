@@ -1,9 +1,15 @@
 -- 创建打包清单表
 CREATE TABLE IF NOT EXISTS packing_lists (
     id SERIAL PRIMARY KEY,
-    travel_days INTEGER NOT NULL CHECK (travel_days BETWEEN 1 AND 7),
-    weather VARCHAR(10) NOT NULL CHECK (weather IN ('晴天', '雨天', '低温')),
+    travel_days INTEGER NOT NULL CHECK (travel_days BETWEEN 1 AND 30),
+    weather VARCHAR(50) NOT NULL,
+    destination VARCHAR(100),
+    trip_purpose VARCHAR(50),
+    traveler_type VARCHAR(50),
+    preferences JSONB DEFAULT '[]',
     list_content JSONB NOT NULL,
+    ai_tips TEXT,
+    ai_generated BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

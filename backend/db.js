@@ -1,8 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-// Supabase配置
-const supabaseUrl = 'https://ritmvwytkgbpkasqulgz.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpdG12d3l0a2dicGthc3F1bGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDc5NzUsImV4cCI6MjA4ODAyMzk3NX0.-gZbv7mET8XxFw3eILPLaqBGYCkZFus4GvU8tMPyrrM';
+// Supabase配置 - 从环境变量读取
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+// 验证环境变量
+if (!supabaseUrl || !supabaseKey) {
+    console.error('错误：缺少 Supabase 环境变量');
+    console.error('请确保 .env 文件中包含 SUPABASE_URL 和 SUPABASE_KEY');
+    process.exit(1);
+}
 
 // 创建Supabase客户端
 const supabase = createClient(supabaseUrl, supabaseKey);

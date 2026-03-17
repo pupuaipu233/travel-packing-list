@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>旅行极简打包清单工具</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <title>旅行极简打包清单工具 - AI智能版</title>
     <style>
         * {
             margin: 0;
@@ -13,119 +12,267 @@
         }
         
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             color: #333;
             line-height: 1.6;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
         }
         
         h1 {
             text-align: center;
-            color: #4a6fa5;
-            margin-bottom: 30px;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
-        .intro {
+        .subtitle {
             text-align: center;
+            color: rgba(255,255,255,0.9);
             margin-bottom: 30px;
-            color: #666;
+            font-size: 1.1em;
         }
         
-        .input-form {
+        .card {
             background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .card h2 {
+            color: #4a6fa5;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
         .form-group {
             margin-bottom: 15px;
         }
         
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+        .form-group.full-width {
+            grid-column: 1 / -1;
         }
         
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="text"],
         select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #4a6fa5;
+        }
+        
+        .preferences-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .preference-tag {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            font-size: 14px;
+        }
+        
+        .preference-tag:hover {
+            border-color: #4a6fa5;
+            background: #f0f4ff;
+        }
+        
+        .preference-tag.selected {
+            background: #4a6fa5;
+            color: white;
+            border-color: #4a6fa5;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
         }
         
         button {
-            background-color: #4a6fa5;
-            color: white;
+            padding: 14px 24px;
             border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
+            transition: all 0.3s;
         }
         
-        button:hover {
-            background-color: #3a5a85;
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-ai {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-ai:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+        }
+        
+        .btn-ai::before {
+            content: '✨';
+            margin-right: 8px;
+        }
+        
+        .btn-ai:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         
         .result {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .result h2 {
             color: #4a6fa5;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-badge {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .ai-tips {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .ai-tips h4 {
+            color: #d68910;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ai-tips p {
+            color: #7d6608;
+            line-height: 1.6;
         }
         
         .item-category {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .item-category h3 {
             color: #555;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .item-list {
             list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
         }
         
         .item-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #4a6fa5;
+            transition: all 0.3s;
         }
         
-        .item-list li:last-child {
-            border-bottom: none;
+        .item-list li:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
         }
         
         .history {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .history h2 {
             color: #4a6fa5;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         
         .history-list {
@@ -134,230 +281,255 @@
         
         .history-item {
             padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #e0e0e0;
             margin-bottom: 10px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
         }
         
         .history-item:hover {
-            background-color: #f0f0f0;
+            background: #e9ecef;
+            transform: translateX(5px);
         }
         
         .history-item .info {
-            font-size: 14px;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .history-item .meta {
+            font-size: 13px;
             color: #666;
-            margin-bottom: 8px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
         }
         
         .history-item .date {
             font-size: 12px;
             color: #999;
+            margin-top: 8px;
         }
         
-        .history-item button {
-            background-color: #6c757d;
-            padding: 6px 12px;
-            font-size: 14px;
-            margin-top: 10px;
-            width: auto;
-        }
-        
-        .history-item button:hover {
-            background-color: #5a6268;
-        }
-        
-        .history-item button.delete-btn {
-            background-color: #dc3545;
-            margin-left: 10px;
-        }
-        
-        .history-item button.delete-btn:hover {
-            background-color: #c82333;
+        .ai-tag {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
         }
         
         .error {
-            color: red;
+            color: #e74c3c;
+            background: #fdf2f2;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
             margin-top: 10px;
         }
         
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 40px;
             color: #666;
         }
         
-        .clear-all-btn {
-            background-color: #dc3545;
-            margin-top: 20px;
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #4a6fa5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
         }
         
-        .clear-all-btn:hover {
-            background-color: #c82333;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .item-list {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>旅行极简打包清单工具</h1>
-        <div class="intro">
-            <p>输入旅行天数和目的地天气，一键生成无冗余的极简打包清单</p>
-        </div>
+        <h1>🧳 旅行极简打包清单</h1>
+        <p class="subtitle">AI智能生成，让打包更轻松</p>
         
-        <div class="input-form">
-            <h2>基础信息输入</h2>
-            <div class="form-group">
-                <label for="travel-days">旅行天数</label>
-                <select id="travel-days">
-                    <option value="1">1天</option>
-                    <option value="2">2天</option>
-                    <option value="3">3天</option>
-                    <option value="4">4天</option>
-                    <option value="5">5天</option>
-                    <option value="6">6天</option>
-                    <option value="7">7天</option>
-                </select>
+        <div class="card">
+            <h2>📋 行程信息</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="travel-days">旅行天数 *</label>
+                    <select id="travel-days">
+                        <option value="1">1天</option>
+                        <option value="2">2天</option>
+                        <option value="3" selected>3天</option>
+                        <option value="4">4天</option>
+                        <option value="5">5天</option>
+                        <option value="6">6天</option>
+                        <option value="7">7天</option>
+                        <option value="8">8天</option>
+                        <option value="9">9天</option>
+                        <option value="10">10天</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="destination">目的地 *</label>
+                    <input type="text" id="destination" placeholder="例如：三亚、北京、东京...">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="weather">目的地天气</label>
-                <select id="weather">
-                    <option value="晴天">晴天</option>
-                    <option value="雨天">雨天</option>
-                    <option value="低温">低温</option>
-                </select>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="trip-purpose">出行目的</label>
+                    <select id="trip-purpose">
+                        <option value="">请选择目的</option>
+                        <option value="度假">🏖️ 度假休闲</option>
+                        <option value="商务">💼 商务出差</option>
+                        <option value="探亲">👨‍👩‍👧‍👦 探亲访友</option>
+                        <option value="户外">🏔️ 户外探险</option>
+                        <option value="文化">🏛️ 文化游览</option>
+                        <option value="购物">🛍️ 购物美食</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="traveler-type">旅行者类型</label>
+                    <select id="traveler-type">
+                        <option value="">请选择类型</option>
+                        <option value="单人">🧍 单人出行</option>
+                        <option value="情侣">💑 情侣出游</option>
+                        <option value="亲子">👨‍👩‍👧‍👦 亲子家庭</option>
+                        <option value="朋友">👫 朋友结伴</option>
+                        <option value="老年">👴👵 老年出游</option>
+                    </select>
+                </div>
             </div>
-            <button id="generate-btn">生成清单</button>
+            
+            <!-- 天气信息显示区域 -->
+            <div class="form-group full-width" id="weather-info" style="display: none;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                        <span style="font-size: 24px;">🌤️</span>
+                        <strong style="font-size: 18px;">目的地天气预报</strong>
+                    </div>
+                    <div id="weather-details" style="font-size: 14px; opacity: 0.9;">
+                        正在获取天气信息...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group full-width">
+                <label>个人偏好（可多选）</label>
+                <div class="preferences-group">
+                    <span class="preference-tag" data-value="摄影">📷 摄影</span>
+                    <span class="preference-tag" data-value="美食">🍜 美食</span>
+                    <span class="preference-tag" data-value="购物">🛍️ 购物</span>
+                    <span class="preference-tag" data-value="运动">⚽ 运动</span>
+                    <span class="preference-tag" data-value="文化">🎭 文化</span>
+                    <span class="preference-tag" data-value="自然">🌲 自然</span>
+                    <span class="preference-tag" data-value="夜生活">🌙 夜生活</span>
+                    <span class="preference-tag" data-value="放松">🧘 放松</span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" id="generate-btn">
+                    📝 快速生成
+                </button>
+                <button class="btn-ai" id="generate-ai-btn">
+                    AI 智能生成
+                </button>
+            </div>
         </div>
         
         <div class="result" id="result">
-            <h2>生成的清单</h2>
+            <h2>
+                📦 打包清单
+                <span class="ai-badge" id="ai-badge" style="display: none;">AI生成</span>
+            </h2>
+            
+            <div class="ai-tips" id="ai-tips" style="display: none;">
+                <h4>💡 AI特别提醒</h4>
+                <p id="ai-tips-content"></p>
+            </div>
+            
             <div id="result-content"></div>
         </div>
         
         <div class="history">
-            <h2>历史记录</h2>
-            <div id="history-list"></div>
-            <button id="clear-all-btn" class="clear-all-btn">清空所有历史记录</button>
+            <h2>📚 历史记录</h2>
+            <div id="history-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <p>暂无历史记录</p>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
-        // Supabase配置
-        const SUPABASE_URL = 'https://ritmvwytkgbpkasqulgz.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpdG12d3l0a2dicGthc3F1bGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDc5NzUsImV4cCI6MjA4ODAyMzk3NX0.-gZbv7mET8XxFw3eILPLaqBGYCkZFus4GvU8tMPyrrM';
+        // 偏好标签选择
+        document.querySelectorAll('.preference-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                this.classList.toggle('selected');
+            });
+        });
         
-        // 创建Supabase客户端
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        // 生成打包清单的逻辑
-        function generatePackingList(travelDays, weather) {
-            const baseItems = {
-                must_have: [
-                    '身份证',
-                    '手机',
-                    '充电器',
-                    `换洗衣物（${travelDays}套）`,
-                    '充电宝'
-                ],
-                optional: [
-                    '洗漱用品'
-                ]
-            };
-            
-            // 根据天气添加特定物品
-            switch (weather) {
-                case '晴天':
-                    baseItems.must_have.push('防晒霜');
-                    baseItems.optional.push('帽子', '墨镜');
-                    break;
-                case '雨天':
-                    baseItems.must_have.push('雨具');
-                    baseItems.optional.push('雨伞', '防水鞋套');
-                    break;
-                case '低温':
-                    baseItems.must_have.push('厚外套');
-                    baseItems.optional.push('围巾', '手套', '帽子');
-                    break;
-            }
-            
-            return baseItems;
-        }
-        
-        // 保存到Supabase
-        async function saveToHistory(travelDays, weather, listContent) {
-            const { data, error } = await supabase
-                .from('packing_lists')
-                .insert({
-                    travel_days: parseInt(travelDays),
-                    weather,
-                    list_content: listContent
-                })
-                .select();
-            
-            if (error) {
-                console.error('保存失败:', error);
-                alert('保存失败，请检查网络连接');
-                return null;
-            }
-            
-            return data[0];
-        }
-        
-        // 从Supabase加载历史记录
-        async function loadHistory() {
-            const { data, error } = await supabase
-                .from('packing_lists')
-                .select('id, travel_days, weather, list_content, created_at')
-                .order('created_at', { ascending: false });
-            
-            if (error) {
-                console.error('加载失败:', error);
-                return [];
-            }
-            
-            return data;
-        }
-        
-        // 删除历史记录
-        async function deleteHistoryItem(id) {
-            const { error } = await supabase
-                .from('packing_lists')
-                .delete()
-                .eq('id', id);
-            
-            if (error) {
-                console.error('删除失败:', error);
-                alert('删除失败，请检查网络连接');
-                return;
-            }
-            
-            displayHistory();
-        }
-        
-        // 清空所有历史记录
-        async function clearAllHistory() {
-            if (confirm('确定要清空所有历史记录吗？')) {
-                const { error } = await supabase
-                    .from('packing_lists')
-                    .delete()
-                    .neq('id', 0);
-                
-                if (error) {
-                    console.error('清空失败:', error);
-                    alert('清空失败，请检查网络连接');
-                    return;
-                }
-                
-                displayHistory();
-            }
+        // 获取选中的偏好
+        function getSelectedPreferences() {
+            return Array.from(document.querySelectorAll('.preference-tag.selected'))
+                .map(tag => tag.dataset.value);
         }
         
         // 显示清单
-        function displayList(listContent) {
+        function displayList(listContent, aiTips = null, isAIGenerated = false) {
+            const result = document.getElementById('result');
             const resultContent = document.getElementById('result-content');
+            const aiBadge = document.getElementById('ai-badge');
+            const aiTipsDiv = document.getElementById('ai-tips');
+            const aiTipsContent = document.getElementById('ai-tips-content');
             
             if (!listContent || (!listContent.must_have && !listContent.optional)) {
                 resultContent.innerHTML = '<div class="error">清单生成失败</div>';
+                result.classList.add('show');
                 return;
             }
             
@@ -366,7 +538,7 @@
             if (listContent.must_have && listContent.must_have.length > 0) {
                 html += `
                     <div class="item-category">
-                        <h3>必带物品</h3>
+                        <h3>🎯 必带物品</h3>
                         <ul class="item-list">
                             ${listContent.must_have.map(item => `<li>${item}</li>`).join('')}
                         </ul>
@@ -377,7 +549,7 @@
             if (listContent.optional && listContent.optional.length > 0) {
                 html += `
                     <div class="item-category">
-                        <h3>可选物品</h3>
+                        <h3>✨ 可选物品</h3>
                         <ul class="item-list">
                             ${listContent.optional.map(item => `<li>${item}</li>`).join('')}
                         </ul>
@@ -386,76 +558,309 @@
             }
             
             resultContent.innerHTML = html;
+            
+            // 显示AI相关元素
+            if (isAIGenerated) {
+                aiBadge.style.display = 'inline-block';
+            } else {
+                aiBadge.style.display = 'none';
+            }
+            
+            if (aiTips) {
+                aiTipsContent.textContent = aiTips;
+                aiTipsDiv.style.display = 'block';
+            } else {
+                aiTipsDiv.style.display = 'none';
+            }
+            
+            result.classList.add('show');
+            
+            // 滚动到结果区域
+            result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
-        // 显示历史记录
-        async function displayHistory() {
-            const historyList = document.getElementById('history-list');
-            historyList.innerHTML = '<div class="loading">加载中...</div>';
+        // 获取天气信息
+        async function fetchWeather(destination) {
+            try {
+                const response = await fetch(`http://localhost:8888/api/weather?destination=${encodeURIComponent(destination)}`);
+                if (!response.ok) throw new Error('获取天气失败');
+                const data = await response.json();
+                return data.data;
+            } catch (error) {
+                console.error('获取天气失败:', error);
+                return null;
+            }
+        }
+        
+        // 显示天气信息
+        function displayWeather(weatherData) {
+            const weatherInfo = document.getElementById('weather-info');
+            const weatherDetails = document.getElementById('weather-details');
             
-            const history = await loadHistory();
+            if (weatherData) {
+                const forecast3d = weatherData.forecast3d || [];
+                let forecastHtml = '';
+                if (forecast3d.length > 0) {
+                    forecastHtml = '<div style="margin-top: 10px; display: flex; gap: 15px; flex-wrap: wrap;">' +
+                        forecast3d.map(day => `<span>${day.date}: ${day.weather} ${day.tempMin}~${day.tempMax}</span>`).join('') +
+                        '</div>';
+                }
+                
+                weatherDetails.innerHTML = `
+                    <strong>${weatherData.weather}</strong> | 
+                    温度: ${weatherData.tempRange} | 
+                    湿度: ${weatherData.humidity || 'N/A'}<br>
+                    ${weatherData.suggestions || ''}
+                    ${forecastHtml}
+                `;
+                weatherInfo.style.display = 'block';
+            } else {
+                weatherInfo.style.display = 'none';
+            }
+        }
+        
+        // 目的地输入时自动获取天气
+        let weatherTimeout;
+        document.getElementById('destination').addEventListener('input', function() {
+            clearTimeout(weatherTimeout);
+            const destination = this.value.trim();
             
-            if (history.length === 0) {
-                historyList.innerHTML = '<p>暂无历史记录</p>';
+            if (destination.length >= 2) {
+                weatherTimeout = setTimeout(async () => {
+                    const weatherData = await fetchWeather(destination);
+                    displayWeather(weatherData);
+                }, 500);
+            } else {
+                document.getElementById('weather-info').style.display = 'none';
+            }
+        });
+        
+        // 快速生成（原有功能）
+        document.getElementById('generate-btn').addEventListener('click', async function() {
+            const travelDays = document.getElementById('travel-days').value;
+            const destination = document.getElementById('destination').value;
+            const resultContent = document.getElementById('result-content');
+            
+            // 显示加载状态
+            document.getElementById('result').classList.add('show');
+            resultContent.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>生成中...</p>
+                </div>
+            `;
+            
+            try {
+                // 获取天气
+                let weather = '晴天';
+                if (destination) {
+                    const weatherData = await fetchWeather(destination);
+                    if (weatherData) {
+                        weather = weatherData.weather;
+                        displayWeather(weatherData);
+                    }
+                }
+                
+                const response = await fetch('http://localhost:8888/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        travel_days: travelDays, 
+                        weather: weather
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('生成失败');
+                }
+                
+                const data = await response.json();
+                displayList(data.list_content, null, false);
+                loadHistory();
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">生成失败：${error.message}</div>`;
+            }
+        });
+        
+        // AI智能生成
+        document.getElementById('generate-ai-btn').addEventListener('click', async function() {
+            const travelDays = document.getElementById('travel-days').value;
+            const destination = document.getElementById('destination').value;
+            const tripPurpose = document.getElementById('trip-purpose').value;
+            const travelerType = document.getElementById('traveler-type').value;
+            const preferences = getSelectedPreferences();
+            
+            // 验证必填项
+            if (!destination) {
+                alert('请输入目的地');
                 return;
             }
             
-            const html = history.map(item => `
-                <div class="history-item">
-                    <div class="info">
-                        <strong>${item.travel_days}天旅行 - ${item.weather}</strong>
-                    </div>
-                    <div class="date">${new Date(item.created_at).toLocaleString()}</div>
-                    <button onclick="loadHistoryItem(${item.id})">查看详情</button>
-                    <button onclick="deleteHistoryItem(${item.id})" class="delete-btn">删除</button>
-                </div>
-            `).join('');
+            const resultContent = document.getElementById('result-content');
+            const btn = this;
             
-            historyList.innerHTML = html;
+            // 禁用按钮，显示加载状态
+            btn.disabled = true;
+            document.getElementById('result').classList.add('show');
+            resultContent.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>AI正在为您生成个性化清单...</p>
+                    <p style="font-size: 14px; color: #999;">正在获取目的地天气和推荐物品...</p>
+                </div>
+            `;
+            
+            try {
+                // 先获取天气信息
+                const weatherData = await fetchWeather(destination);
+                if (weatherData) {
+                    displayWeather(weatherData);
+                }
+                
+                console.log('发送请求到服务器...', {
+                    travel_days: parseInt(travelDays),
+                    destination,
+                    trip_purpose: tripPurpose,
+                    traveler_type: travelerType
+                });
+                
+                const response = await fetch('http://localhost:8888/api/generate-smart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        travel_days: parseInt(travelDays),
+                        destination,
+                        trip_purpose: tripPurpose,
+                        traveler_type: travelerType,
+                        preferences
+                    })
+                });
+                
+                console.log('收到响应:', response.status);
+                
+                if (!response.ok) {
+                    let errorMessage = '生成失败';
+                    try {
+                        const errorText = await response.text();
+                        console.log('服务器错误响应:', errorText);
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            errorMessage = errorData.error || `服务器错误 (${response.status}): ${errorText}`;
+                        } catch(e) {
+                            errorMessage = `服务器错误 (${response.status}): ${errorText}`;
+                        }
+                    } catch (e) {
+                        errorMessage = `服务器错误 (${response.status})`;
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const data = await response.json();
+                
+                // 检查返回的数据结构
+                if (!data.success || !data.data) {
+                    throw new Error('返回数据格式错误');
+                }
+                
+                displayList(
+                    data.data.list_content,
+                    data.data.ai_tips,
+                    true
+                );
+                loadHistory();
+            } catch (error) {
+                console.error('AI生成错误:', error);
+                resultContent.innerHTML = `
+                    <div class="error">
+                        <strong>AI生成失败</strong><br>
+                        错误信息：${error.message}<br>
+                        <small style="color: #999;">请检查：1.服务器是否运行 2.网络连接 3.刷新页面重试</small>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        
+        // 加载历史记录
+        async function loadHistory() {
+            const historyList = document.getElementById('history-list');
+            
+            try {
+                const response = await fetch('http://localhost:8888/api/history');
+                
+                if (!response.ok) {
+                    throw new Error('加载历史记录失败');
+                }
+                
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <p>暂无历史记录</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const html = data.map(item => `
+                    <div class="history-item" onclick="loadHistoryItem(${item.id})">
+                        <div class="info">
+                            ${item.travel_days}天 · ${item.destination || '未指定目的地'} · ${item.weather || '未指定天气'}
+                            ${item.ai_generated ? '<span class="ai-tag">AI</span>' : ''}
+                        </div>
+                        <div class="meta">
+                            ${item.trip_purpose ? `<span>🎯 ${item.trip_purpose}</span>` : ''}
+                            ${item.traveler_type ? `<span>👥 ${item.traveler_type}</span>` : ''}
+                        </div>
+                        <div class="date">${new Date(item.created_at).toLocaleString()}</div>
+                    </div>
+                `).join('');
+                
+                historyList.innerHTML = html;
+            } catch (error) {
+                historyList.innerHTML = `<div class="error">加载历史记录失败：${error.message}</div>`;
+            }
         }
         
         // 加载历史记录详情
         async function loadHistoryItem(id) {
-            const { data, error } = await supabase
-                .from('packing_lists')
-                .select('id, travel_days, weather, list_content, created_at')
-                .eq('id', id)
-                .single();
+            const resultContent = document.getElementById('result-content');
             
-            if (error) {
-                console.error('加载详情失败:', error);
-                alert('加载详情失败，请检查网络连接');
-                return;
-            }
+            document.getElementById('result').classList.add('show');
+            resultContent.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>加载中...</p>
+                </div>
+            `;
             
-            if (data) {
-                displayList(data.list_content);
+            try {
+                const response = await fetch(`http://localhost:8888/api/history/${id}`);
+                
+                if (!response.ok) {
+                    throw new Error('加载详情失败');
+                }
+                
+                const data = await response.json();
+                displayList(
+                    data.list_content,
+                    data.ai_tips,
+                    data.ai_generated
+                );
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">加载详情失败：${error.message}</div>`;
             }
         }
         
-        // 生成清单
-        document.getElementById('generate-btn').addEventListener('click', async function() {
-            const travelDays = document.getElementById('travel-days').value;
-            const weather = document.getElementById('weather').value;
-            
-            // 生成清单
-            const listContent = generatePackingList(travelDays, weather);
-            
-            // 保存到Supabase
-            await saveToHistory(travelDays, weather, listContent);
-            
-            // 显示清单
-            displayList(listContent);
-            
-            // 重新加载历史记录
-            displayHistory();
-        });
-        
-        // 清空所有历史记录
-        document.getElementById('clear-all-btn').addEventListener('click', clearAllHistory);
-        
         // 页面加载时加载历史记录
-        window.onload = displayHistory;
+        window.onload = loadHistory;
     </script>
 </body>
 </html>
