@@ -5,24 +5,6 @@
   "build": {
     "output": "."
   },
-  "functions": {
-    "api/generate": {
-      "path": "functions/generate.js",
-      "method": "POST"
-    },
-    "api/generate-smart": {
-      "path": "functions/generate-smart.js",
-      "method": "POST"
-    },
-    "api/history": {
-      "path": "functions/history.js",
-      "method": "GET"
-    },
-    "api/weather": {
-      "path": "functions/weather.js",
-      "method": "GET"
-    }
-  },
   "env": {
     "SUPABASE_URL": "https://ritmvwytkgbpkasqulgz.supabase.co",
     "SUPABASE_KEY": "你的_supabase_key",
