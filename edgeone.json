@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "pages",
   "build": {
-    "output": "."
+    "output": ".",
+    "functions": "functions"
   },
   "env": {
     "SUPABASE_URL": "https://ritmvwytkgbpkasqulgz.supabase.co",
