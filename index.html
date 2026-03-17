@@ -885,6 +885,19 @@
             }
         }
         
+        // 获取真实天气信息
+        async function fetchWeather(destination) {
+            try {
+                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
+                if (!response.ok) throw new Error('获取天气失败');
+                const data = await response.json();
+                return data.success ? data.data : null;
+            } catch (error) {
+                console.error('获取天气失败:', error);
+                return null;
+            }
+        }
+        
         // 目的地输入时自动获取天气
         let weatherTimeout;
         let currentWeather = null;
@@ -894,8 +907,8 @@
             
             if (destination.length >= 2) {
                 weatherTimeout = setTimeout(async () => {
-                    // 使用模拟天气数据
-                    currentWeather = getSimulatedWeather(destination);
+                    // 调用真实天气 API
+                    currentWeather = await fetchWeather(destination);
                     displayWeather(currentWeather);
                 }, 500);
             } else {
@@ -940,7 +953,7 @@
             loadHistory();
         });
         
-        // AI智能生成
+        // AI智能生成 - 调用真实 API
         document.getElementById('generate-ai-btn').addEventListener('click', async function() {
             const travelDays = document.getElementById('travel-days').value;
             const destination = document.getElementById('destination').value;
@@ -964,19 +977,75 @@
                 <div class="loading">
                     <div class="loading-spinner"></div>
                     <p>AI正在为您生成个性化清单...</p>
-                    <p style="font-size: 14px; color: #999;">正在分析目的地特征和天气...</p>
+                    <p style="font-size: 14px; color: #999;">正在连接智谱 AI...</p>
                 </div>
             `;
             
-            // 模拟AI处理延迟
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
             try {
-                // 获取天气信息
+                // 获取真实天气信息
+                const weatherData = await fetchWeather(destination);
+                if (weatherData) {
+                    currentWeather = weatherData;
+                    displayWeather(weatherData);
+                }
+                
+                // 调用 AI API 生成清单
+                const response = await fetch('/api/generate-smart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        travel_days: parseInt(travelDays),
+                        destination,
+                        weather: currentWeather ? currentWeather.weather : null,
+                        trip_purpose: tripPurpose,
+                        traveler_type: travelerType,
+                        preferences
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'AI 生成失败');
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || '生成失败');
+                }
+                
+                // 保存到历史记录
+                saveToHistory({
+                    travel_days: parseInt(travelDays),
+                    destination: destination,
+                    weather: currentWeather ? currentWeather.weather : null,
+                    trip_purpose: tripPurpose || null,
+                    traveler_type: travelerType || null,
+                    preferences: preferences,
+                    list_content: data.data.list_content,
+                    ai_tips: data.data.ai_tips,
+                    ai_generated: true
+                });
+                
+                displayList(data.data.list_content, data.data.ai_tips, true);
+                loadHistory();
+            } catch (error) {
+                console.error('AI生成错误:', error);
+                // 如果 API 调用失败，使用本地逻辑作为备用
+                resultContent.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>AI服务暂时不可用，使用本地智能生成...</p>
+                    </div>
+                `;
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
                 const weatherData = currentWeather || getSimulatedWeather(destination);
                 displayWeather(weatherData);
                 
-                // 生成智能清单
                 const listContent = generateSmartList({
                     travel_days: parseInt(travelDays),
                     destination,
@@ -986,7 +1055,6 @@
                     preferences
                 });
                 
-                // 保存到历史记录
                 saveToHistory({
                     travel_days: parseInt(travelDays),
                     destination: destination,
@@ -1001,14 +1069,6 @@
                 
                 displayList(listContent, listContent.tips, true);
                 loadHistory();
-            } catch (error) {
-                console.error('AI生成错误:', error);
-                resultContent.innerHTML = `
-                    <div class="error">
-                        <strong>生成失败</strong><br>
-                        错误信息：${error.message}
-                    </div>
-                `;
             } finally {
                 btn.disabled = false;
             }
