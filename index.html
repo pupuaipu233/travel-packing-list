@@ -582,7 +582,7 @@
         // 获取天气信息
         async function fetchWeather(destination) {
             try {
-                const response = await fetch(`http://localhost:8888/api/weather?destination=${encodeURIComponent(destination)}`);
+                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
                 if (!response.ok) throw new Error('获取天气失败');
                 const data = await response.json();
                 return data.data;
@@ -661,7 +661,7 @@
                     }
                 }
                 
-                const response = await fetch('http://localhost:8888/api/generate', {
+                const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -726,7 +726,7 @@
                     traveler_type: travelerType
                 });
                 
-                const response = await fetch('http://localhost:8888/api/generate-smart', {
+                const response = await fetch('/api/generate-smart', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -791,7 +791,7 @@
             const historyList = document.getElementById('history-list');
             
             try {
-                const response = await fetch('http://localhost:8888/api/history');
+                const response = await fetch('/api/history');
                 
                 if (!response.ok) {
                     throw new Error('加载历史记录失败');
