@@ -1,5 +1,8 @@
 {
   "name": "travel-packing-list",
   "version": "1.0.0",
-  "type": "pages"
+  "type": "pages",
+  "build": {
+    "output": "."
+  }
 }
