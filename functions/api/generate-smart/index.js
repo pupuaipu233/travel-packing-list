@@ -1,4 +1,4 @@
-// EdgeOne Function: AI 智能清单生成（简化版）
+// EdgeOne Function: AI 智能清单生成（简化版 - v2）
 export async function onRequestPost(context) {
     try {
         const { request, env } = context;
