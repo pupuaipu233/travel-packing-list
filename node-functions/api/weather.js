@@ -1,5 +1,5 @@
 // EdgeOne Edge Function: 天气查询 API
-// 使用心知天气 API
+// 使用 OpenWeatherMap API
 
 export default function onRequest(context) {
     const { request, env } = context;
@@ -31,42 +31,95 @@ async function handleWeather(request, destination, env, corsHeaders) {
             });
         }
         
-        const publicKey = env.SENIVERSE_PUBLIC_KEY || 'PL1aBeQc_8_f6qxxj';
+        // 使用 OpenWeatherMap API，它更简单可靠
+        const apiKey = env.OPENWEATHER_API_KEY || 'b1b15e88fa797225412429c1c50c122a1';
         
-        // 直接使用 URL 参数，不使用签名
-        const weatherUrl = `https://api.seniverse.com/v3/weather/daily.json?key=${publicKey}&location=${encodeURIComponent(destination)}&language=zh-Hans&unit=c&start=0&days=3`;
+        // 先通过地理编码 API 获取城市的经纬度
+        const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(destination)}&limit=1&appid=${apiKey}`;
+        
+        console.log('地理编码 API 请求 URL:', geocodeUrl);
+        
+        const geocodeResponse = await fetch(geocodeUrl);
+        console.log('地理编码 API 响应状态:', geocodeResponse.status);
+        
+        if (!geocodeResponse.ok) {
+            const errorData = await geocodeResponse.text();
+            throw new Error(`地理编码 API 错误: ${errorData}`);
+        }
+        
+        const geocodeData = await geocodeResponse.json();
+        console.log('地理编码 API 响应数据:', JSON.stringify(geocodeData));
+        
+        if (!geocodeData || geocodeData.length === 0) {
+            throw new Error('未找到该目的地');
+        }
+        
+        const { lat, lon, name, country } = geocodeData[0];
+        
+        // 使用经纬度获取天气数据
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=zh_cn&appid=${apiKey}`;
         
         console.log('天气 API 请求 URL:', weatherUrl);
         
-        const response = await fetch(weatherUrl);
-        console.log('天气 API 响应状态:', response.status);
+        const weatherResponse = await fetch(weatherUrl);
+        console.log('天气 API 响应状态:', weatherResponse.status);
         
-        if (!response.ok) {
-            const errorData = await response.text();
+        if (!weatherResponse.ok) {
+            const errorData = await weatherResponse.text();
             throw new Error(`天气 API 错误: ${errorData}`);
         }
         
-        const data = await response.json();
-        console.log('天气 API 响应数据:', JSON.stringify(data));
+        const weatherData = await weatherResponse.json();
+        console.log('天气 API 响应数据:', JSON.stringify(weatherData));
         
-        if (data.results && data.results[0]) {
-            const weatherData = data.results[0];
-            const daily = weatherData.daily[0];
+        if (weatherData.list && weatherData.list.length > 0) {
+            // 处理天气数据
+            const currentWeather = weatherData.list[0];
+            const forecast3d = [];
+            
+            // 提取未来3天的天气数据（每天取中午的数据）
+            for (let i = 0; i < weatherData.list.length; i++) {
+                const item = weatherData.list[i];
+                const date = new Date(item.dt * 1000);
+                if (date.getHours() === 12) {
+                    forecast3d.push({
+                        date: date.toISOString().split('T')[0],
+                        weather: item.weather[0].description,
+                        tempMin: Math.round(item.main.temp_min),
+                        tempMax: Math.round(item.main.temp_max)
+                    });
+                    if (forecast3d.length === 3) break;
+                }
+            }
+            
+            // 如果没有足够的中午数据，使用其他时间的数据
+            if (forecast3d.length < 3) {
+                for (let i = 0; i < weatherData.list.length && forecast3d.length < 3; i++) {
+                    const item = weatherData.list[i];
+                    const date = new Date(item.dt * 1000);
+                    const dateStr = date.toISOString().split('T')[0];
+                    
+                    // 检查是否已经有该日期的数据
+                    if (!forecast3d.some(f => f.date === dateStr)) {
+                        forecast3d.push({
+                            date: dateStr,
+                            weather: item.weather[0].description,
+                            tempMin: Math.round(item.main.temp_min),
+                            tempMax: Math.round(item.main.temp_max)
+                        });
+                    }
+                }
+            }
             
             return new Response(JSON.stringify({
                 success: true,
                 data: {
-                    destination: weatherData.location.name,
-                    weather: daily.text_day,
-                    tempRange: `${daily.low}~${daily.high}°C`,
-                    humidity: daily.humidity + '%',
-                    suggestions: getWeatherSuggestion(daily.text_day),
-                    forecast3d: weatherData.daily.map(day => ({
-                        date: day.date,
-                        weather: day.text_day,
-                        tempMin: day.low,
-                        tempMax: day.high
-                    }))
+                    destination: `${name}, ${country}`,
+                    weather: currentWeather.weather[0].description,
+                    tempRange: `${Math.round(currentWeather.main.temp_min)}~${Math.round(currentWeather.main.temp_max)}°C`,
+                    humidity: currentWeather.main.humidity + '%',
+                    suggestions: getWeatherSuggestion(currentWeather.weather[0].main),
+                    forecast3d: forecast3d
                 }
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -75,7 +128,7 @@ async function handleWeather(request, destination, env, corsHeaders) {
         
         return new Response(JSON.stringify({ 
             success: false, 
-            error: '天气数据获取失败: ' + JSON.stringify(data)
+            error: '天气数据获取失败: ' + JSON.stringify(weatherData)
         }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -95,16 +148,15 @@ async function handleWeather(request, destination, env, corsHeaders) {
 
 function getWeatherSuggestion(weather) {
     const suggestions = {
-        '晴': '天气晴朗，注意防晒',
-        '多云': '天气舒适，适合出行',
-        '阴': '天气阴沉，建议带件外套',
-        '雨': '有雨，记得带伞',
-        '小雨': '有小雨，记得带伞',
-        '中雨': '有中雨，记得带伞',
-        '大雨': '有大雨，尽量减少外出',
-        '雪': '有雪，注意保暖',
-        '雷阵雨': '有雷阵雨，注意安全',
-        '雾': '有雾，能见度低'
+        'Clear': '天气晴朗，注意防晒',
+        'Clouds': '天气多云，适合出行',
+        'Rain': '有雨，记得带伞',
+        'Drizzle': '有小雨，记得带伞',
+        'Thunderstorm': '有雷阵雨，注意安全',
+        'Snow': '有雪，注意保暖',
+        'Mist': '有雾，能见度低',
+        'Fog': '有雾，能见度低',
+        'Haze': '有霾，注意防护'
     };
     return suggestions[weather] || '天气多变，注意携带合适衣物';
 }
