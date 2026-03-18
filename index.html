@@ -888,7 +888,7 @@
         // 获取真实天气信息（通过 EdgeOne Function）
         async function fetchWeather(destination) {
             try {
-                const response = await fetch(`/api/weather/?destination=${encodeURIComponent(destination)}`);
+                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
                 if (!response.ok) throw new Error('获取天气失败');
                 const data = await response.json();
                 return data.success ? data.data : null;
@@ -1006,7 +1006,7 @@
                 }
                 
                 // 调用 EdgeOne Function 生成清单
-                const response = await fetch('/api/generate-smart/', {
+                const response = await fetch('/api/generate-smart', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

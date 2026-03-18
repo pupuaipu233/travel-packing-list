@@ -1,29 +1,23 @@
 // EdgeOne Edge Function: AI 智能生成清单 API
 // 使用智谱 GLM-4 API
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-export function onRequestPost(context) {
-    return handleRequest(context);
-}
-
-export function onRequest(context) {
-    const { request } = context;
+export default function onRequest(context) {
+    const { request, env } = context;
+    
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    };
     
     if (request.method === 'OPTIONS') {
         return new Response(null, { headers: corsHeaders });
     }
     
-    return handleRequest(context);
+    return handleRequest(request, env, corsHeaders);
 }
 
-async function handleRequest(context) {
-    const { request, env } = context;
-    
+async function handleRequest(request, env, corsHeaders) {
     try {
         const body = await request.json();
         const { 
@@ -47,16 +41,6 @@ async function handleRequest(context) {
 
         const apiKey = env.GLM_API_KEY || '175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu';
         const model = env.GLM_MODEL || 'glm-4-flash';
-
-        if (!apiKey) {
-            return new Response(JSON.stringify({ 
-                success: false, 
-                error: 'AI 服务未配置' 
-            }), {
-                status: 500,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        }
 
         const prompt = buildPrompt({
             travel_days,

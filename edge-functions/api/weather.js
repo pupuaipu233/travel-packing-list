@@ -1,16 +1,20 @@
 // EdgeOne Edge Function: 天气查询 API
 // 使用心知天气 API
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-export function onRequestGet(context) {
+export default function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
     const destination = url.searchParams.get('destination');
+    
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+    };
+    
+    if (request.method === 'OPTIONS') {
+        return new Response(null, { headers: corsHeaders });
+    }
     
     if (!destination) {
         return new Response(JSON.stringify({ 
@@ -22,20 +26,10 @@ export function onRequestGet(context) {
         });
     }
     
-    return handleWeather(destination, env);
+    return handleWeather(destination, env, corsHeaders);
 }
 
-export function onRequest(context) {
-    const { request } = context;
-    
-    if (request.method === 'OPTIONS') {
-        return new Response(null, { headers: corsHeaders });
-    }
-    
-    return onRequestGet(context);
-}
-
-async function handleWeather(destination, env) {
+async function handleWeather(destination, env, corsHeaders) {
     try {
         const publicKey = env.SENIVERSE_PUBLIC_KEY || 'PL1aBeQc_8_f6qxxj';
         const privateKey = env.SENIVERSE_PRIVATE_KEY || 'SaEVjjmjs5RvzMkuC';
@@ -45,7 +39,6 @@ async function handleWeather(destination, env) {
         const uid = 'user_' + ts;
         const sigStr = `ts=${ts}&ttl=${ttl}&uid=${uid}${privateKey}`;
         
-        // 使用 Web Crypto API 生成 HMAC-SHA1 签名
         const encoder = new TextEncoder();
         const keyData = encoder.encode(privateKey);
         const msgData = encoder.encode(sigStr);
