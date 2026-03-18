@@ -45,7 +45,7 @@ async function handleRequest(context) {
             });
         }
 
-        const apiKey = env.GLM_API_KEY;
+        const apiKey = env.GLM_API_KEY || '175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu';
         const model = env.GLM_MODEL || 'glm-4-flash';
 
         if (!apiKey) {
