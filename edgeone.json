@@ -3,14 +3,6 @@
   "version": "1.0.0",
   "type": "pages",
   "build": {
-    "output": ".",
-    "command": "",
-    "cwd": ""
-  },
-  "functions": {
-    "api": {
-      "runtime": "Nodejs16",
-      "handler": "index.js"
-    }
+    "output": "."
   }
 }
