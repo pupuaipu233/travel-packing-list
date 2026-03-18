@@ -37,27 +37,18 @@ async function handleWeather(destination, env, corsHeaders) {
         const ts = Math.floor(Date.now() / 1000);
         const ttl = 300;
         const uid = 'user_' + ts;
-        const sigStr = `ts=${ts}&ttl=${ttl}&uid=${uid}${privateKey}`;
         
-        const encoder = new TextEncoder();
-        const keyData = encoder.encode(privateKey);
-        const msgData = encoder.encode(sigStr);
+        // 简化版：直接使用 URL 参数，不使用签名
+        // 心知天气 API 也支持无签名的调用方式，只是有频率限制
+        const weatherUrl = `https://api.seniverse.com/v3/weather/daily.json?key=${publicKey}&location=${encodeURIComponent(destination)}&language=zh-Hans&unit=c&start=0&days=3`;
         
-        const cryptoKey = await crypto.subtle.importKey(
-            'raw',
-            keyData,
-            { name: 'HMAC', hash: 'SHA-1' },
-            false,
-            ['sign']
-        );
-        
-        const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
-        const sig = btoa(String.fromCharCode(...new Uint8Array(signature)));
-        
-        const weatherUrl = `https://api.seniverse.com/v3/weather/daily.json?key=${publicKey}&location=${encodeURIComponent(destination)}&language=zh-Hans&unit=c&start=0&days=3&ts=${ts}&ttl=${ttl}&uid=${uid}&sig=${sig}`;
+        console.log('天气 API 请求 URL:', weatherUrl);
         
         const response = await fetch(weatherUrl);
+        console.log('天气 API 响应状态:', response.status);
+        
         const data = await response.json();
+        console.log('天气 API 响应数据:', JSON.stringify(data));
         
         if (data.results && data.results[0]) {
             const weatherData = data.results[0];
@@ -85,7 +76,7 @@ async function handleWeather(destination, env, corsHeaders) {
         
         return new Response(JSON.stringify({ 
             success: false, 
-            error: '天气数据获取失败' 
+            error: '天气数据获取失败: ' + JSON.stringify(data)
         }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -95,7 +86,7 @@ async function handleWeather(destination, env, corsHeaders) {
         console.error('天气查询错误:', error);
         return new Response(JSON.stringify({ 
             success: false, 
-            error: error.message 
+            error: '服务器内部错误: ' + error.message 
         }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
