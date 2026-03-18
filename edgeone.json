@@ -4,5 +4,9 @@
   "type": "pages",
   "build": {
     "output": "."
+  },
+  "functions": {
+    "runtime": "nodejs20",
+    "path": "node-functions"
   }
 }

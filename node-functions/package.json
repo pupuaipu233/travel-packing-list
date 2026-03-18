@@ -1,0 +1,19 @@
+{
+  "name": "travel-packing-list-functions",
+  "version": "1.0.0",
+  "description": "EdgeOne Node Functions for travel packing list",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "edgeone",
+    "functions",
+    "travel",
+    "weather",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT"
+}

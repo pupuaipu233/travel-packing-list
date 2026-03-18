@@ -19,6 +19,15 @@ export default function onRequest(context) {
 
 async function handleRequest(request, env, corsHeaders) {
     try {
+        if (request.method === 'GET') {
+            return new Response(JSON.stringify({ 
+                success: true, 
+                message: 'AI 生成 API 就绪' 
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
         const body = await request.json();
         const { 
             travel_days, 
