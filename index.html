@@ -668,24 +668,47 @@
         // 基础必带物品
         const baseMustHave = ['身份证/护照', '手机', '充电器', '充电宝', '钱包/现金'];
         
+        // 获取目的地物品推荐
+        async function fetchDestinationItems(destination, weather) {
+            try {
+                const response = await fetch(`/api/destination-items?destination=${encodeURIComponent(destination)}&weather=${encodeURIComponent(weather || '')}`);
+                if (!response.ok) throw new Error('获取目的地物品失败');
+                const data = await response.json();
+                return data.success ? data.data.items : null;
+            } catch (error) {
+                console.error('获取目的地物品失败:', error);
+                return null;
+            }
+        }
+
         // 智能清单生成函数
-        function generateSmartList(params) {
+        async function generateSmartList(params) {
             const { travel_days, destination, weather, trip_purpose, traveler_type, preferences } = params;
             
             let mustHave = [...baseMustHave, `换洗衣物(${travel_days}套)`];
             let optional = ['洗漱用品', '毛巾'];
             let tips = [];
             
-            // 根据目的地添加物品
+            // 尝试从 API 获取目的地物品
             if (destination) {
-                const destKey = Object.keys(destinationDatabase).find(key => 
-                    destination.includes(key) || key.includes(destination)
-                );
-                if (destKey) {
-                    const destData = destinationDatabase[destKey];
-                    mustHave.push(...destData.mustHave);
-                    optional.push(...destData.optional);
-                    tips.push(destData.tips);
+                const destinationItems = await fetchDestinationItems(destination, weather);
+                if (destinationItems) {
+                    mustHave.push(...destinationItems.must_have);
+                    optional.push(...destinationItems.optional);
+                    if (destinationItems.tips) {
+                        tips.push(destinationItems.tips);
+                    }
+                } else {
+                    // 如果 API 调用失败，使用本地数据库
+                    const destKey = Object.keys(destinationDatabase).find(key => 
+                        destination.includes(key) || key.includes(destination)
+                    );
+                    if (destKey) {
+                        const destData = destinationDatabase[destKey];
+                        mustHave.push(...destData.mustHave);
+                        optional.push(...destData.optional);
+                        tips.push(destData.tips);
+                    }
                 }
             }
             
@@ -1146,7 +1169,7 @@
                 const weatherData = currentWeather || getSimulatedWeather(destination);
                 displayWeather(weatherData);
                 
-                const listContent = generateSmartList({
+                const listContent = await generateSmartList({
                     travel_days: parseInt(travelDays),
                     destination,
                     weather: weatherData.weather,
