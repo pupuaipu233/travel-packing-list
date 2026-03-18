@@ -887,59 +887,99 @@
         
         // API 配置
         const API_CONFIG = {
-            seniversePublicKey: 'PL1aBeQc_8_f6qxxj',
-            seniversePrivateKey: 'SaEVjjmjs5RvzMkuC',
             glmApiKey: '175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu',
             glmModel: 'GLM-4-FlashX-250414'
         };
         
-        // 生成 HMAC-SHA1 签名
-        async function generateSignature(str, key) {
-            const encoder = new TextEncoder();
-            const keyData = encoder.encode(key);
-            const msgData = encoder.encode(str);
-            
-            const cryptoKey = await crypto.subtle.importKey(
-                'raw',
-                keyData,
-                { name: 'HMAC', hash: 'SHA-1' },
-                false,
-                ['sign']
-            );
-            
-            const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
-            return btoa(String.fromCharCode(...new Uint8Array(signature)));
+        // 城市名称到坐标的映射（常见城市）
+        const cityCoordinates = {
+            '北京': { lat: 39.9042, lon: 116.4074 },
+            '上海': { lat: 31.2304, lon: 121.4737 },
+            '广州': { lat: 23.1291, lon: 113.2644 },
+            '深圳': { lat: 22.5431, lon: 114.0579 },
+            '成都': { lat: 30.5728, lon: 104.0668 },
+            '杭州': { lat: 30.2741, lon: 120.1551 },
+            '南京': { lat: 32.0603, lon: 118.7969 },
+            '西安': { lat: 34.3416, lon: 108.9398 },
+            '重庆': { lat: 29.4316, lon: 106.9123 },
+            '天津': { lat: 39.3434, lon: 117.3616 },
+            '苏州': { lat: 31.2990, lon: 120.5853 },
+            '武汉': { lat: 30.5928, lon: 114.3055 },
+            '长沙': { lat: 28.2282, lon: 112.9388 },
+            '青岛': { lat: 36.0671, lon: 120.3826 },
+            '大连': { lat: 38.9140, lon: 121.6147 },
+            '厦门': { lat: 24.4798, lon: 118.0894 },
+            '昆明': { lat: 25.0406, lon: 102.7129 },
+            '哈尔滨': { lat: 45.8038, lon: 126.5340 },
+            '沈阳': { lat: 41.8057, lon: 123.4315 },
+            '济南': { lat: 36.6512, lon: 117.1205 },
+            '三亚': { lat: 18.2528, lon: 109.5119 },
+            '海口': { lat: 20.0444, lon: 110.1999 },
+            '桂林': { lat: 25.2742, lon: 110.2903 },
+            '丽江': { lat: 26.8721, lon: 100.2280 },
+            '大理': { lat: 25.6069, lon: 100.2679 },
+            '西安': { lat: 34.3416, lon: 108.9398 },
+            '拉萨': { lat: 29.6500, lon: 91.1000 },
+            '乌鲁木齐': { lat: 43.8256, lon: 87.6168 },
+            '香港': { lat: 22.3193, lon: 114.1694 },
+            '澳门': { lat: 22.1987, lon: 113.5439 },
+            '台北': { lat: 25.0330, lon: 121.5654 },
+            '东京': { lat: 35.6762, lon: 139.6503 },
+            '大阪': { lat: 34.6937, lon: 135.5023 },
+            '首尔': { lat: 37.5665, lon: 126.9780 },
+            '曼谷': { lat: 13.7563, lon: 100.5018 },
+            '新加坡': { lat: 1.3521, lon: 103.8198 },
+            '巴黎': { lat: 48.8566, lon: 2.3522 },
+            '伦敦': { lat: 51.5074, lon: -0.1278 },
+            '纽约': { lat: 40.7128, lon: -74.0060 },
+            '悉尼': { lat: -33.8688, lon: 151.2093 }
+        };
+        
+        // 天气代码映射
+        function getWeatherFromCode(code) {
+            const weatherMap = {
+                0: '晴天', 1: '晴间多云', 2: '多云', 3: '阴天',
+                45: '雾', 48: '雾',
+                51: '小雨', 53: '中雨', 55: '大雨',
+                61: '小雨', 63: '中雨', 65: '大雨',
+                71: '小雪', 73: '中雪', 75: '大雪',
+                77: '雪粒', 80: '阵雨', 81: '阵雨', 82: '暴雨',
+                85: '小雪', 86: '大雪',
+                95: '雷暴', 96: '雷暴', 99: '雷暴'
+            };
+            return weatherMap[code] || '多云';
         }
         
-        // 获取真实天气信息（直接调用心知天气 API）
+        // 获取真实天气信息（使用 Open-Meteo API，免费且支持 CORS）
         async function fetchWeather(destination) {
             try {
-                const ts = Math.floor(Date.now() / 1000);
-                const ttl = 300;
-                const uid = 'user_' + ts;
-                const sigStr = `ts=${ts}&ttl=${ttl}&uid=${uid}${API_CONFIG.seniversePrivateKey}`;
-                const sig = await generateSignature(sigStr, API_CONFIG.seniversePrivateKey);
+                const coords = cityCoordinates[destination];
+                if (!coords) {
+                    console.log('未找到城市坐标，使用默认天气');
+                    return null;
+                }
                 
-                const weatherUrl = `https://api.seniverse.com/v3/weather/daily.json?key=${API_CONFIG.seniversePublicKey}&location=${encodeURIComponent(destination)}&language=zh-Hans&unit=c&start=0&days=3&ts=${ts}&ttl=${ttl}&uid=${uid}&sig=${sig}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FShanghai`;
                 
                 const response = await fetch(weatherUrl);
                 const data = await response.json();
                 
-                if (data.results && data.results[0]) {
-                    const weatherData = data.results[0];
-                    const daily = weatherData.daily[0];
+                if (data.daily) {
+                    const daily = data.daily;
+                    const todayCode = daily.weathercode[0];
+                    const weather = getWeatherFromCode(todayCode);
                     
                     return {
-                        destination: weatherData.location.name,
-                        weather: daily.text_day,
-                        tempRange: `${daily.low}~${daily.high}°C`,
-                        humidity: daily.humidity + '%',
-                        suggestions: getWeatherSuggestion(daily.text_day),
-                        forecast3d: weatherData.daily.map(day => ({
-                            date: day.date,
-                            weather: day.text_day,
-                            tempMin: day.low,
-                            tempMax: day.high
+                        destination: destination,
+                        weather: weather,
+                        tempRange: `${daily.temperature_2m_min[0]}~${daily.temperature_2m_max[0]}°C`,
+                        humidity: daily.precipitation_probability_max[0] + '%',
+                        suggestions: getWeatherSuggestion(weather),
+                        forecast3d: daily.time.slice(0, 3).map((date, i) => ({
+                            date: date,
+                            weather: getWeatherFromCode(daily.weathercode[i]),
+                            tempMin: daily.temperature_2m_min[i],
+                            tempMax: daily.temperature_2m_max[i]
                         }))
                     };
                 }
