@@ -908,18 +908,117 @@
             }
         }
         
-        // 调用后端天气 API
-        async function fetchWeather(destination) {
+        // 本地缓存
+        const weatherCache = new Map();
+        const CACHE_DURATION = 30 * 60 * 1000; // 30分钟缓存
+
+        // 请求超时控制
+        async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
             try {
-                const response = await fetch(`/api/weather?destination=${encodeURIComponent(destination)}`);
-                if (!response.ok) throw new Error('获取天气失败');
-                const data = await response.json();
-                return data.success ? data.data : null;
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response;
             } catch (error) {
-                console.error('获取天气失败:', error);
-                // 如果 API 调用失败，使用模拟数据作为备用
-                return getSimulatedWeather(destination);
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error('请求超时');
+                }
+                throw error;
             }
+        }
+
+        // 调用后端天气 API（带重试机制）
+        async function fetchWeather(destination) {
+            // 检查缓存
+            const cacheKey = `weather_${destination}`;
+            const cachedData = weatherCache.get(cacheKey);
+            const now = Date.now();
+            
+            if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+                console.log('使用缓存的天气数据');
+                return cachedData.data;
+            }
+            
+            // 实现重试机制
+            let retries = 0;
+            const maxRetries = 3;
+            
+            while (retries < maxRetries) {
+                try {
+                    const response = await fetchWithTimeout(`/api/weather?destination=${encodeURIComponent(destination)}`);
+                    if (!response.ok) throw new Error('获取天气失败');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // 更新缓存
+                        weatherCache.set(cacheKey, {
+                            data: data.data,
+                            timestamp: now
+                        });
+                        return data.data;
+                    }
+                    return null;
+                } catch (error) {
+                    retries++;
+                    console.warn(`获取天气失败，正在重试 (${retries}/${maxRetries})...`);
+                    if (retries >= maxRetries) {
+                        console.error('获取天气失败，已达到最大重试次数');
+                        // 使用增强的模拟数据作为备用
+                        return getEnhancedSimulatedWeather(destination);
+                    }
+                    // 指数退避策略
+                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+                }
+            }
+        }
+
+        // 增强的模拟天气数据
+        function getEnhancedSimulatedWeather(destination) {
+            // 根据目的地提供更合理的模拟数据
+            const destinationWeatherMap = {
+                '北京': { weather: '晴', tempRange: '15~25°C', humidity: '45%', suggestions: '天气晴朗，注意防晒' },
+                '上海': { weather: '多云', tempRange: '18~28°C', humidity: '65%', suggestions: '天气舒适，适合出行' },
+                '广州': { weather: '晴', tempRange: '22~32°C', humidity: '75%', suggestions: '天气炎热，注意防暑' },
+                '三亚': { weather: '晴', tempRange: '25~30°C', humidity: '80%', suggestions: '天气炎热，注意防晒和保湿' },
+                '成都': { weather: '阴', tempRange: '16~22°C', humidity: '70%', suggestions: '天气凉爽，适合出行' },
+                '杭州': { weather: '多云', tempRange: '17~25°C', humidity: '65%', suggestions: '天气舒适，适合出行' },
+                '深圳': { weather: '晴', tempRange: '23~30°C', humidity: '70%', suggestions: '天气炎热，注意防晒' },
+                '西安': { weather: '晴', tempRange: '14~23°C', humidity: '50%', suggestions: '天气晴朗，注意防晒' },
+                '南京': { weather: '多云', tempRange: '16~24°C', humidity: '60%', suggestions: '天气舒适，适合出行' },
+                '武汉': { weather: '晴', tempRange: '18~28°C', humidity: '65%', suggestions: '天气温暖，注意防晒' }
+            };
+            
+            const weatherData = destinationWeatherMap[destination] || {
+                weather: '晴',
+                tempRange: '15~25°C',
+                humidity: '65%',
+                suggestions: '天气舒适，适合出行'
+            };
+            
+            // 生成未来3天的预报
+            const forecast3d = [];
+            for (let i = 0; i < 3; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                forecast3d.push({
+                    date: date.toISOString().split('T')[0],
+                    weather: weatherData.weather,
+                    tempMin: parseInt(weatherData.tempRange.split('~')[0]),
+                    tempMax: parseInt(weatherData.tempRange.split('~')[1].replace('°C', ''))
+                });
+            }
+            
+            return {
+                destination: destination,
+                ...weatherData,
+                forecast3d: forecast3d
+            };
         }
         
         // 根据天气给出建议

@@ -17,8 +17,80 @@ export default function onRequest(context) {
     return handleRequest(request, env, corsHeaders);
 }
 
+// 请求超时控制
+async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('API 请求超时');
+        }
+        throw error;
+    }
+}
+
+// 请求频率控制
+const requestCounts = new Map();
+const RATE_LIMIT = 30; // 每分钟请求数
+const WINDOW_MS = 60 * 1000; // 时间窗口
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const key = `rate_${ip}`;
+    
+    if (!requestCounts.has(key)) {
+        requestCounts.set(key, {
+            count: 1,
+            timestamp: now
+        });
+        return true;
+    }
+    
+    const data = requestCounts.get(key);
+    if (now - data.timestamp > WINDOW_MS) {
+        // 时间窗口已过，重置计数器
+        requestCounts.set(key, {
+            count: 1,
+            timestamp: now
+        });
+        return true;
+    }
+    
+    if (data.count >= RATE_LIMIT) {
+        return false;
+    }
+    
+    // 增加计数
+    data.count++;
+    requestCounts.set(key, data);
+    return true;
+}
+
 async function handleRequest(request, env, corsHeaders) {
     try {
+        // 获取客户端 IP
+        const ip = request.headers.get('X-Forwarded-For') || 'unknown';
+        
+        // 检查速率限制
+        if (!checkRateLimit(ip)) {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: '请求过于频繁，请稍后再试' 
+            }), {
+                status: 429,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        
         if (request.method === 'GET') {
             return new Response(JSON.stringify({ 
                 success: true, 
@@ -70,7 +142,7 @@ async function handleRequest(request, env, corsHeaders) {
             preferences
         });
 
-        const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+        const response = await fetchWithTimeout('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -135,6 +207,15 @@ async function handleRequest(request, env, corsHeaders) {
         });
 
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: 'API 请求超时' 
+            }), {
+                status: 504,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
         console.error('AI 生成错误:', error);
         return new Response(JSON.stringify({ 
             success: false, 
