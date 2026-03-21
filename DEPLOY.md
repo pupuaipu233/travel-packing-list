@@ -56,7 +56,7 @@
 |--------|-----|
 | `SUPABASE_URL` | `https://ritmvwytkgbpkasqulgz.supabase.co` |
 | `SUPABASE_KEY` | `sb_publishable_3J06yRIpKdajhdMwLivAWw_6WJ4-5vv` |
-| `GLM_API_KEY` | `175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu` |
+| `GLM_API_KEY` | `你的_glm_api_key` |
 | `GLM_MODEL` | `GLM-4-FlashX-250414` |
 | `SENIVERSE_PUBLIC_KEY` | `PL1aBeQc_8_f6qxxj` |
 | `SENIVERSE_PRIVATE_KEY` | `SaEVjjmjs5RvzMkuC` |
@@ -121,9 +121,9 @@ A: 检查：
 2. GLM_MODEL 是否设置为 `GLM-4-FlashX-250414`
 
 ### Q: 天气查询失败
-A: 检查心知天气密钥：
-- SENIVERSE_PUBLIC_KEY
-- SENIVERSE_PRIVATE_KEY
+A: 检查：
+- OPENWEATHER_API_KEY 是否正确配置
+- 目的地名称是否正确（支持中文城市名）
 
 ---
 
