@@ -32,7 +32,17 @@ async function handleWeather(request, destination, env, corsHeaders) {
         }
         
         // 使用 OpenWeatherMap API，它更简单可靠
-        const apiKey = env.OPENWEATHER_API_KEY || 'b1b15e88fa797225412429c1c50c122a1';
+        const apiKey = env.OPENWEATHER_API_KEY;
+        
+        if (!apiKey) {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: '缺少 OpenWeatherMap API 密钥配置' 
+            }), {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
         
         // 先通过地理编码 API 获取城市的经纬度
         const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(destination)}&limit=1&appid=${apiKey}`;

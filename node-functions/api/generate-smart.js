@@ -48,8 +48,18 @@ async function handleRequest(request, env, corsHeaders) {
             });
         }
 
-        const apiKey = env.GLM_API_KEY || '175790c2e5924b7292a1644e2b2d6347.0wDQoz1XI7GoZ0Wu';
+        const apiKey = env.GLM_API_KEY;
         const model = env.GLM_MODEL || 'glm-4-flash';
+        
+        if (!apiKey) {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: '缺少 GLM API 密钥配置' 
+            }), {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
 
         const prompt = buildPrompt({
             travel_days,
